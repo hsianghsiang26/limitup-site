@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="zh-Hant"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="漲停清單">
+<title>漲停清單</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="theme-color" content="#0d1117">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<style>
+body{background:#0d1117;color:#c9d1d9;font-family:-apple-system,"PingFang TC","Microsoft JhengHei",sans-serif;margin:0;
+ display:flex;align-items:center;justify-content:center;min-height:100vh}
+form{background:#161b22;border:1px solid #21262d;border-radius:10px;padding:24px;width:min(320px,90vw)}
+h1{font-size:18px;margin:0 0 14px}
+input{width:100%;box-sizing:border-box;background:#0d1117;color:#c9d1d9;border:1px solid #30363d;border-radius:6px;padding:10px;font-size:16px}
+button{margin-top:12px;width:100%;background:#ff4d4f;color:#fff;border:0;border-radius:6px;padding:10px;font-size:16px}
+#msg{color:#8b949e;font-size:13px;margin-top:10px;min-height:18px}
+label{display:flex;gap:6px;align-items:center;font-size:13px;color:#8b949e;margin-top:10px}
+label input{width:auto}
+</style></head><body>
+<form id="f"><h1>漲停清單</h1>
+<input id="pw" type="password" placeholder="密碼" autocomplete="current-password">
+<label><input id="rem" type="checkbox" checked>在這台裝置記住密碼</label>
+<button>進入</button><div id="msg"></div></form>
+<script>
+const $=id=>document.getElementById(id);
+const b64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+async function dec(o,pw){
+  const km=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveKey']);
+  const key=await crypto.subtle.deriveKey({name:'PBKDF2',salt:b64(o.salt),iterations:o.iter,hash:'SHA-256'},km,{name:'AES-GCM',length:256},false,['decrypt']);
+  return new TextDecoder().decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:b64(o.iv)},key,b64(o.ct)));
+}
+function saved(){try{return localStorage.getItem('lu_pw')||sessionStorage.getItem('lu_pw')||''}catch(e){return ''}}
+async function go(pw,remember){
+  $('msg').textContent='載入中 …';
+  let o;
+  try{o=await fetch('report.enc?t='+Date.now(),{cache:'no-store'}).then(r=>{if(!r.ok)throw r.status;return r.json()});}
+  catch(e){$('msg').textContent=navigator.onLine?'還沒有報表（'+e+'）。等今天 15:30 自動跑完，或到 GitHub 手動執行 daily。':'沒有網路，而且這台裝置還沒存過報表（要先在有網路時打開一次）';return;}
+  let html;
+  try{html=await dec(o,pw);}catch(e){$('msg').textContent='密碼錯誤';try{localStorage.removeItem('lu_pw')}catch(_){}return;}
+  try{sessionStorage.setItem('lu_pw',pw);if(remember)localStorage.setItem('lu_pw',pw);}catch(e){}
+  if(!navigator.onLine&&o.at)html=html.replace('<body>','<body><div style="background:#3a2f12;color:#e3b341;font-size:13px;padding:6px 16px">離線模式：顯示 '+o.at+' 產生的報表（查詢、分K、即時報價要有網路）</div>');
+  document.open();document.write(html);document.close();
+}
+$('f').onsubmit=e=>{e.preventDefault();go($('pw').value,$('rem').checked)};
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+const s=saved();if(s)go(s,true);
+</script></body></html>
