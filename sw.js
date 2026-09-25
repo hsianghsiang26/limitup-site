@@ -1,5 +1,5 @@
 // 離線用：登入頁、圖示用快取；報表（report.enc）先抓網路，抓不到就用上次存下來的
-const C = 'limitup-v1';
+const C = 'zbt-v2';
 const SHELL = ['./', 'index.html', 'manifest.webmanifest', 'icon-180.png', 'icon-192.png', 'icon-512.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(C).then(c => c.addAll(SHELL)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => {

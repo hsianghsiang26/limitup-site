@@ -1,6 +1,6 @@
 {
-  "name": "漲停清單",
-  "short_name": "漲停清單",
+  "name": "漲不停",
+  "short_name": "漲不停",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
