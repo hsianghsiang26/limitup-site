@@ -39,7 +39,7 @@ async function go(pw,remember){
   try{o=await fetch('report.enc?t='+Date.now(),{cache:'no-store'}).then(r=>{if(!r.ok)throw r.status;return r.json()});}
   catch(e){$('msg').textContent=navigator.onLine?'還沒有報表（'+e+'）。等今天 15:30 自動跑完，或到 GitHub 手動執行 daily。':'沒有網路，而且這台裝置還沒存過報表（要先在有網路時打開一次）';return;}
   let html;
-  try{html=await dec(o,pw);}catch(e){$('msg').textContent='密碼錯誤';try{localStorage.removeItem('lu_pw')}catch(_){}return;}
+  try{html=await dec(o,pw);}catch(e){$('msg').textContent='密碼錯誤'+(o.at?'（這份報表是 '+o.at+' 用 GitHub 上設定的密碼加密的；最近重設過密碼就要用新的）':'');try{localStorage.removeItem('lu_pw')}catch(_){}return;}
   try{sessionStorage.setItem('lu_pw',pw);if(remember)localStorage.setItem('lu_pw',pw);}catch(e){}
   if(!navigator.onLine&&o.at)html=html.replace('<body>','<body><div style="background:#3a2f12;color:#e3b341;font-size:13px;padding:6px 16px">離線模式：顯示 '+o.at+' 產生的報表（查詢、分K、即時報價要有網路）</div>');
   document.open();document.write(html);document.close();
