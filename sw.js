@@ -1,4 +1,4 @@
-// 離線用：登入頁、圖示用快取；報表（report.enc）先抓網路，抓不到就用上次存下來的
+// 離線用：登入頁、圖示用快取；報表（report.enc）先抓網路，抓不到就用上次存下來的（快取名稱不要改，改了會把存好的報表清掉）
 const C = 'zbt-v2';
 const SHELL = ['./', 'index.html', 'manifest.webmanifest', 'icon-180.png', 'icon-192.png', 'icon-512.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(C).then(c => c.addAll(SHELL)).then(() => self.skipWaiting())); });
@@ -13,6 +13,8 @@ self.addEventListener('fetch', e => {
     fetch(e.request).then(r => {
       if (r.ok) { const cp = r.clone(); caches.open(C).then(c => c.put(key, cp)); }
       return r;
-    }).catch(() => caches.open(C).then(c => c.match(key)).then(r => r || caches.match(e.request, {ignoreSearch: true})))
+    }).catch(() => caches.open(C).then(c => c.match(key)).then(r => r || caches.match(e.request, {ignoreSearch: true}))
+      // 網路斷掉又沒存過：回一個明確的錯誤（不要回 undefined，iPhone 會變成 FetchEvent.respondWith 錯誤）
+      .then(r => r || new Response(JSON.stringify({offline: true}), {status: 503, headers: {'Content-Type': 'application/json'}})))
   );
 });

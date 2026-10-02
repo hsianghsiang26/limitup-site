@@ -35,9 +35,15 @@ async function dec(o,pw){
 function saved(){try{return localStorage.getItem('lu_pw')||sessionStorage.getItem('lu_pw')||''}catch(e){return ''}}
 async function go(pw,remember){
   $('msg').textContent='載入中 …';
-  let o;
-  try{o=await fetch('report.enc?t='+Date.now(),{cache:'no-store'}).then(r=>{if(!r.ok)throw r.status;return r.json()});}
-  catch(e){$('msg').textContent=navigator.onLine?'還沒有報表（'+e+'）。等今天 15:30 自動跑完，或到 GitHub 手動執行 daily。':'沒有網路，而且這台裝置還沒存過報表（要先在有網路時打開一次）';return;}
+  let o,err;
+  // 報表約 5MB，手機網路不穩時常常抓到一半斷掉：自動重試 3 次
+  for(let k=1;k<=3&&!o;k++){
+    try{o=await fetch('report.enc?t='+Date.now(),{cache:'no-store'}).then(r=>{if(r.status===404)throw 404;if(r.status===503)throw 'offline';if(!r.ok)throw 'HTTP '+r.status;return r.json()});}
+    catch(e){err=e;if(e===404)break;$('msg').textContent='網路不穩，重試中（第 '+k+' 次）…';await new Promise(z=>setTimeout(z,1500*k));}
+  }
+  if(!o){$('msg').textContent=err===404?'還沒有報表。等今天 15:30 自動跑完，或到 GitHub 手動執行 daily。'
+    :err==='offline'||!navigator.onLine?'沒有網路，而且這台裝置還沒存過報表（要先在有網路時打開一次）'
+    :'網路不穩，報表沒下載完（'+err+'）。換個網路或過一下再按「進入」。';return;}
   let html;
   try{html=await dec(o,pw);}catch(e){$('msg').textContent='密碼錯誤'+(o.at?'（這份報表是 '+o.at+' 用 GitHub 上設定的密碼加密的；最近重設過密碼就要用新的）':'');try{localStorage.removeItem('lu_pw')}catch(_){}return;}
   try{sessionStorage.setItem('lu_pw',pw);if(remember)localStorage.setItem('lu_pw',pw);}catch(e){}
